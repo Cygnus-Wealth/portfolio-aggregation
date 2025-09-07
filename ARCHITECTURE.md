@@ -1,12 +1,41 @@
-# Architecture - Portfolio Aggregation Service Library
+# Portfolio Aggregation Bounded Context Architecture
 
 ## Overview
 
-The Portfolio Aggregation Service Library implements a **Hexagonal Architecture** (Ports and Adapters) pattern within the CygnusWealth domain. This bounded context serves as a **service library** that orchestrates data collection from multiple blockchain and traditional financial sources, providing a unified portfolio view to consuming applications.
+The Portfolio Aggregation bounded context is a **service library** (`@cygnus-wealth/portfolio-aggregation`) that orchestrates data collection from multiple blockchain and traditional financial sources, combining them into a unified portfolio view. This bounded context implements **Hexagonal Architecture** within the CygnusWealth enterprise domain structure.
+
+**Package**: `@cygnus-wealth/portfolio-aggregation`  
+**Type**: Service Library (NPM Package)  
+**Domain**: Portfolio Management (Core Domain)  
+**Repository**: `https://github.com/cygnus-wealth/portfolio-aggregation`
+
+## Enterprise Context
+
+This bounded context operates within the CygnusWealth enterprise architecture:
+
+### Domain Classification
+- **Strategic Domain**: Portfolio Domain
+- **Bounded Context**: portfolio-aggregation
+- **Type**: Service library consumed by client applications
+- **Core Responsibilities**: Data orchestration, portfolio composition, asset deduplication, reconciliation
+
+### Dependencies
+- **Upstream Dependencies** (Consuming this library):
+  - `@cygnus-wealth/cygnus-wealth-app` - Main web application
+  - Future client applications
+
+- **Downstream Dependencies** (This library depends on):
+  - `@cygnus-wealth/data-models` - Shared contracts and data structures
+  - `@cygnus-wealth/evm-integration` - EVM blockchain data
+  - `@cygnus-wealth/sol-integration` - Solana blockchain data
+  - `@cygnus-wealth/robinhood-integration` - Traditional finance data
+  - `@cygnus-wealth/asset-valuator` - Pricing and valuation services
 
 ## Architectural Principles
 
 ### Hexagonal Architecture (Ports and Adapters)
+
+This bounded context implements hexagonal architecture to maintain clean separation between business logic and external dependencies:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -56,20 +85,78 @@ The Portfolio Aggregation Service Library implements a **Hexagonal Architecture*
          │                           │                    │
          ▼                           ▼                    ▼
 ┌─────────────────┐       ┌─────────────────┐   ┌─────────────────┐
-│   Portfolio     │       │  IndexedDB      │   │   Event Bus     │
-│  Repository     │       │   Repository    │   │   Subscribers   │
-│     Port        │       │    Adapter      │   │    (External)   │
+│   Portfolio     │       │  Persistence    │   │   Event Bus     │
+│  Repository     │       │   Adapters      │   │   Subscribers   │
+│     Port        │       │  (Consumer)     │   │   (Consumer)    │
 └─────────────────┘       └─────────────────┘   └─────────────────┘
 ```
 
 ### Dependency Flow
 
-All dependencies point **inward** toward the domain core:
+All dependencies point **inward** toward the domain core, following the dependency inversion principle:
 - **Infrastructure** depends on **Application** and **Domain**
 - **Application** depends on **Domain**
 - **Domain** has no external dependencies
+- **Consuming Applications** depend on this library's public interface
 
-This ensures the business logic remains isolated and testable.
+This ensures:
+- Business logic remains pure and testable
+- Easy substitution of external integrations
+- Clear boundaries and contracts
+- Library can be consumed by multiple applications
+
+## Bounded Context Scope
+
+### What This Bounded Context Owns
+- Portfolio aggregation logic and orchestration strategies
+- Cross-source asset reconciliation and deduplication rules
+- Portfolio calculation algorithms and business rules
+- Aggregation-specific caching policies
+- Domain events for portfolio lifecycle
+
+### What This Bounded Context Doesn't Own
+- Direct blockchain/API connections (delegated to integration packages)
+- UI components and user interactions (owned by consuming applications)
+- Price data discovery algorithms (owned by asset-valuator)
+- Data model definitions (shared via data-models package)
+- User authentication and session management
+- Browser storage management (handled by consuming applications)
+
+### Context Boundaries and Anti-Corruption Layers
+
+This bounded context maintains strict boundaries through:
+
+1. **Integration Repository Pattern**: All external data sources accessed through `IIntegrationRepository` interface
+2. **Repository Abstraction**: Persistence delegated to consuming applications via `IPortfolioRepository`
+3. **Value Object Translation**: External data transformed to domain models at boundaries
+4. **Event Emission**: Domain events emitted to consuming applications through provided event emitter
+
+## Ubiquitous Language
+
+**Portfolio**: A collection of financial assets owned by a user across multiple sources and chains
+
+**Asset**: A financial instrument with a balance, including tokens, NFTs, stocks, or DeFi positions
+
+**Aggregation**: The process of collecting and combining assets from multiple sources into a unified view
+
+**Reconciliation**: The process of identifying and merging duplicate assets from different sources
+
+**Reconciliation Rules**: Standardized approach to handle same asset from multiple sources:
+- Prefer on-chain data over CEX data  
+- Use most recently updated source for pricing
+- Sum quantities across sources for total holdings
+
+**Integration Source**: An external system that provides asset data (EVM chains, Solana, Robinhood)
+
+**Valuation**: The process of determining current market value for assets
+
+**Deduplication**: Identifying and merging assets that represent the same underlying instrument
+
+**Chain**: A blockchain network (Ethereum, Polygon, Solana, etc.)
+
+**Balance**: The quantity of an asset held, with decimal precision
+
+**Price**: Current market value per unit of an asset in a specific currency
 
 ## Module Structure
 
@@ -99,11 +186,34 @@ src/domain/
 
 **Key Components:**
 
-- **PortfolioAggregate**: Central aggregate managing portfolio state, asset deduplication, and business rules
-- **AssetEntity**: Represents individual financial assets with balance, price, and metadata
-- **Value Objects**: Immutable objects representing Money and blockchain addresses
-- **Domain Events**: Capture significant business events for integration and audit
-- **Domain Services**: Complex business logic that doesn't belong to a single entity
+#### PortfolioAggregate
+- **Purpose**: Central consistency boundary for portfolio state management
+- **Identity**: Portfolio ID (string)
+- **Invariants**:
+  - A portfolio must have at least one source when it contains assets
+  - Asset deduplication must be maintained within a portfolio
+  - Total value must equal the sum of all asset values
+  - Last updated timestamp must reflect the most recent modification
+- **Key Behaviors**: `addAsset()`, `reconcile()`, `getTotalValue()`, `mergePortfolio()`
+
+#### AssetEntity
+- **Purpose**: Represents individual financial assets with balance, price, and metadata
+- **Identity**: Asset ID (string)
+- **Characteristics**: Mutable balance and price, can be merged with similar assets, maintains source metadata
+- **Key Behaviors**: `getValue()`, `isSameAsset()`, `merge()`, `updatePrice()`
+
+#### Value Objects
+- **Money**: Immutable monetary value with currency validation and arithmetic operations
+- **Address**: Immutable blockchain address with chain-specific validation
+
+#### Domain Events
+- **Portfolio Events**: PortfolioAggregated, PortfolioReconciled, etc.
+- **Asset Events**: AssetAdded, AssetMerged, AssetPriceUpdated, etc.
+- **Integration Events**: IntegrationFailed, DataFetched, etc.
+
+#### Domain Services
+- **AssetReconciliationService**: Complex logic for identifying and merging duplicate assets
+- **PortfolioValuationService**: Business rules for portfolio value calculations
 
 ### Application Layer (`src/application/`)
 
@@ -112,19 +222,68 @@ src/domain/
 ```
 src/application/
 ├── services/
-│   └── PortfolioAggregationService.ts  # Main orchestration service
+│   ├── PortfolioAggregationService.ts  # Main orchestration service
+│   ├── AddressRegistryService.ts       # Address management service
+│   └── SyncOrchestratorService.ts      # Sync coordination service
 ├── use-cases/
 │   ├── AggregatePortfolioUseCase.ts    # Portfolio aggregation use case
 │   └── RefreshPortfolioUseCase.ts      # Portfolio refresh use case
+├── commands/
+│   ├── AggregatePortfolioCommand.ts    # Command for portfolio aggregation
+│   ├── RefreshSourceCommand.ts         # Command for source refresh
+│   └── AddAddressCommand.ts            # Command for adding addresses
 └── events/
     └── ApplicationEventHandlers.ts     # Application event handlers
 ```
 
 **Key Components:**
 
-- **PortfolioAggregationService**: Primary service orchestrating data fetching, reconciliation, and caching
-- **Use Cases**: Specific business operations with clear input/output contracts
-- **Event Handlers**: React to domain events for side effects and integration
+#### Required Architectural Services
+
+##### PortfolioAggregationService
+- **Purpose**: Primary service orchestrating data fetching, reconciliation, and caching
+- **Responsibilities**:
+  - Fetches data from all configured sources
+  - Applies reconciliation and deduplication
+  - Returns unified portfolio
+  - Implements partial failure strategy
+
+##### AddressRegistryService  
+- **Purpose**: Manages which addresses to track per blockchain/integration
+- **Responsibilities**:
+  - Manages addresses to track per chain
+  - Stores user labels and metadata for addresses
+  - Provides address discovery capabilities
+  - Validates addresses for each chain type
+
+##### SyncOrchestratorService
+- **Purpose**: Coordinates refresh cycles and manages rate limiting
+- **Responsibilities**:
+  - Coordinates refresh cycles across sources
+  - Manages rate limiting for each integration
+  - Implements retry logic with exponential backoff
+  - Tracks sync state and metrics
+
+#### Architectural Patterns
+
+##### Command Pattern
+All state-changing operations follow command pattern:
+- **AggregatePortfolioCommand**: Initiates portfolio aggregation
+- **RefreshSourceCommand**: Refreshes specific integration source
+- **AddAddressCommand**: Adds new address to track
+
+##### Observer Pattern
+Event-driven notifications for portfolio updates:
+- **PortfolioUpdatedEvent**: Emitted when portfolio changes
+- **SourceSyncCompletedEvent**: Emitted when source sync completes
+- **ErrorOccurredEvent**: Emitted on errors
+
+##### Circuit Breaker Pattern
+Handles failing integrations gracefully:
+- Tracks failure rates per integration
+- Temporarily skips failing integrations
+- Automatic recovery attempts with backoff
+- Configurable failure thresholds and recovery times
 
 ### Infrastructure Layer (`src/infrastructure/`)
 
@@ -239,13 +398,292 @@ export class EVMIntegrationAdapter implements IIntegrationRepository {
 }
 ```
 
+## Service Contract and Public API
+
+### Primary Services
+
+#### PortfolioAggregationService
+
+```typescript
+export class PortfolioAggregationService {
+  constructor(
+    integrations: Map<string, IIntegrationRepository>,
+    portfolioRepository: IPortfolioRepository,
+    assetValuator: IAssetValuatorRepository,
+    eventEmitter?: IEventEmitter
+  );
+
+  // Main aggregation method
+  aggregatePortfolio(params: AggregationParams): Promise<PortfolioAggregate>;
+  
+  // Force refresh portfolio data
+  refreshPortfolio(portfolioId: string): Promise<PortfolioAggregate>;
+  
+  // Get cached portfolio if available
+  getPortfolio(portfolioId: string): Promise<PortfolioAggregate | null>;
+  
+  // Event subscription
+  on(event: DomainEventType, handler: EventHandler): () => void;
+  off(event: DomainEventType, handler: EventHandler): void;
+}
+
+interface AggregationParams {
+  addresses: Map<string, string[]>; // chain -> addresses
+  sources: IntegrationSource[];
+  userId?: string;
+  forceRefresh?: boolean;
+  options?: AggregationOptions;
+}
+```
+
+#### AddressRegistryService
+
+```typescript
+export class AddressRegistryService {
+  constructor(
+    addressRepository: IAddressRepository,
+    eventEmitter?: IEventEmitter
+  );
+
+  // Address management
+  addAddress(chain: string, address: string, metadata?: AddressMetadata): Promise<void>;
+  removeAddress(chain: string, address: string): Promise<void>;
+  updateAddressMetadata(chain: string, address: string, metadata: AddressMetadata): Promise<void>;
+  
+  // Address retrieval
+  getAddresses(chain?: string): Promise<Map<string, AddressEntry[]>>;
+  getAddressByLabel(label: string): Promise<AddressEntry | null>;
+  
+  // Address discovery
+  discoverAddresses(walletConnection: WalletConnection): Promise<AddressEntry[]>;
+  
+  // Address validation
+  validateAddress(chain: string, address: string): Promise<boolean>;
+}
+
+interface AddressMetadata {
+  label?: string;
+  tags?: string[];
+  source?: 'manual' | 'wallet' | 'discovered';
+  addedAt?: Date;
+}
+```
+
+#### SyncOrchestratorService
+
+```typescript
+export class SyncOrchestratorService {
+  constructor(
+    integrations: Map<string, IIntegrationRepository>,
+    rateLimiter: IRateLimiter,
+    circuitBreaker: ICircuitBreaker,
+    eventEmitter?: IEventEmitter
+  );
+
+  // Sync orchestration
+  orchestrateSync(sources: IntegrationSource[]): Promise<SyncResult>;
+  scheduleSyncCycle(interval: number): () => void;
+  
+  // Rate limiting
+  configureRateLimit(source: IntegrationSource, config: RateLimitConfig): void;
+  
+  // Circuit breaker
+  configureCircuitBreaker(source: IntegrationSource, config: CircuitBreakerConfig): void;
+  getCircuitState(source: IntegrationSource): CircuitState;
+  
+  // Retry logic
+  retryFailedSource(source: IntegrationSource): Promise<void>;
+  
+  // Metrics
+  getSyncMetrics(): SyncMetrics;
+}
+
+interface RateLimitConfig {
+  requestsPerMinute: number;
+  burstLimit?: number;
+}
+
+interface CircuitBreakerConfig {
+  failureThreshold: number;
+  recoveryTimeout: number;
+  halfOpenRetries: number;
+}
+```
+
+### Repository Interfaces (Ports)
+
+Consumers must provide implementations for:
+
+#### IIntegrationRepository
+```typescript
+export interface IIntegrationRepository {
+  readonly source: IntegrationSource;
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  isConnected(): boolean;
+  fetchAssets(addresses: string[]): Promise<Asset[]>;
+  fetchTransactions?(addresses: string[], options?: any): Promise<Transaction[]>;
+}
+```
+
+#### IPortfolioRepository
+```typescript
+export interface IPortfolioRepository {
+  save(portfolio: PortfolioAggregate): Promise<void>;
+  findById(id: string): Promise<PortfolioAggregate | null>;
+  findByUserId(userId: string): Promise<PortfolioAggregate[]>;
+  delete(id: string): Promise<void>;
+  getCacheKey(params: AggregationParams): string;
+  isCacheValid(portfolio: PortfolioAggregate, ttl: number): boolean;
+  invalidateCache(pattern?: string): Promise<void>;
+}
+```
+
+#### IAddressRepository
+```typescript
+export interface IAddressRepository {
+  save(chain: string, address: string, metadata: AddressMetadata): Promise<void>;
+  remove(chain: string, address: string): Promise<void>;
+  findByChain(chain: string): Promise<AddressEntry[]>;
+  findAll(): Promise<Map<string, AddressEntry[]>>;
+  findByLabel(label: string): Promise<AddressEntry | null>;
+  update(chain: string, address: string, metadata: Partial<AddressMetadata>): Promise<void>;
+  clear(): Promise<void>;
+}
+```
+
+#### IAssetValuatorRepository
+```typescript
+export interface IAssetValuatorRepository {
+  getPrice(symbol: string, currency?: string): Promise<Price>;
+  getBatchPrices(symbols: string[], currency?: string): Promise<Map<string, Price>>;
+  getMarketData(symbol: string): Promise<MarketData>;
+  convertValue(amount: number, from: string, to: string): Promise<number>;
+}
+```
+
+### Domain Events Contract
+
+The library emits domain events that consuming applications can subscribe to:
+
+```typescript
+export enum DomainEventType {
+  // Portfolio Lifecycle
+  PORTFOLIO_AGGREGATION_STARTED = 'PortfolioAggregationStarted',
+  PORTFOLIO_AGGREGATION_COMPLETED = 'PortfolioAggregationCompleted',
+  PORTFOLIO_AGGREGATION_FAILED = 'PortfolioAggregationFailed',
+  
+  // Asset Management
+  ASSET_ADDED_TO_PORTFOLIO = 'AssetAddedToPortfolio',
+  ASSET_MERGED = 'AssetMerged',
+  ASSET_PRICE_UPDATED = 'AssetPriceUpdated',
+  
+  // Integration Events
+  INTEGRATION_SOURCE_CONNECTED = 'IntegrationSourceConnected',
+  INTEGRATION_SOURCE_FAILED = 'IntegrationSourceFailed',
+  INTEGRATION_SOURCE_DATA_FETCHED = 'IntegrationSourceDataFetched',
+  
+  // Reconciliation Events
+  PORTFOLIO_RECONCILIATION_STARTED = 'PortfolioReconciliationStarted',
+  PORTFOLIO_RECONCILIATION_COMPLETED = 'PortfolioReconciliationCompleted'
+}
+```
+
+## Usage Examples
+
+### Basic Usage in Consumer Application
+
+```typescript
+import { 
+  PortfolioAggregationService,
+  PortfolioServiceFactory 
+} from '@cygnus-wealth/portfolio-aggregation';
+import { createEVMAdapter } from '@cygnus-wealth/evm-integration';
+import { createSolanaAdapter } from '@cygnus-wealth/sol-integration';
+
+// Setup integrations
+const integrations = new Map();
+integrations.set('evm', createEVMAdapter({
+  rpcUrl: 'https://eth.llamarpc.com'
+}));
+integrations.set('solana', createSolanaAdapter({
+  rpcUrl: 'https://api.mainnet-beta.solana.com'
+}));
+
+// Create service
+const service = PortfolioServiceFactory.create({
+  integrations,
+  portfolioRepository: new MyPortfolioRepository(),
+  assetValuator: new MyAssetValuator()
+});
+
+// Subscribe to events
+service.on(DomainEventType.PORTFOLIO_AGGREGATION_COMPLETED, (event) => {
+  console.log('Portfolio updated:', event.payload);
+  updateUI(event.payload.portfolio);
+});
+
+// Aggregate portfolio
+const portfolio = await service.aggregatePortfolio({
+  addresses: new Map([
+    ['ethereum', ['0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb4']],
+    ['solana', ['5UtaXPD7yKFdwZcNh5qZRf8kY3Zv7HaGpP9K9S5dFN4X']]
+  ]),
+  sources: ['evm', 'solana'],
+  userId: 'user-123'
+});
+```
+
+## Event-Driven Architecture
+
+### Domain Events Flow
+
+Events flow from this library to consuming applications:
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Domain        │───▶│   Event Bus      │───▶│   Consumer      │
+│   Operations    │    │   (Provided by   │    │   Application   │
+│   (Library)     │    │    Consumer)     │    │   Handlers      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### Event Processing Strategy
+
+- **Synchronous**: Domain events within transaction boundaries
+- **Asynchronous**: Integration events to external subscribers
+- **Optional**: Event emission through provided EventEmitter interface
+- **Consumers Control**: Persistence, storage, and further propagation
+
+### Event Integration Pattern
+
+```typescript
+// Consumer provides EventEmitter during service initialization
+import { EventEmitter } from 'events';
+
+const eventBus = new EventEmitter();
+const service = new PortfolioAggregationService(
+  integrations,
+  repository,
+  valuator,
+  eventBus  // Optional: if not provided, events won't be emitted
+);
+
+// Consumer subscribes to events
+service.on(DomainEventType.PORTFOLIO_AGGREGATION_COMPLETED, (event) => {
+  // Consumer handles event (UI updates, persistence, analytics, etc.)
+  handlePortfolioUpdate(event.payload);
+  saveToAuditLog(event);
+});
+```
+
 ## Browser Compatibility and Bundle Optimization
 
 ### Target Environments
 
-- **Browsers**: ES2020+ (Chrome 85+, Firefox 80+, Safari 14+)
+- **Browsers**: ES2020+ (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
 - **Node.js**: Version 16+
-- **Module Systems**: ESM primary, UMD fallback
+- **Module Systems**: ESM primary, CommonJS compatibility
 
 ### Bundle Optimization Strategies
 
@@ -536,20 +974,225 @@ window.addEventListener('beforeunload', unsubscribe);
 
 ## Performance and Scalability
 
-### Caching Strategy
-- **L1 Cache**: In-memory for session data
-- **L2 Cache**: IndexedDB for persistent data
-- **Cache Keys**: Source-specific with TTL management
-- **Cache Invalidation**: Event-driven updates
+### Caching Architecture
+
+#### Multi-Layer Caching Strategy
+1. **L1 Cache (Memory)**: Hot data for current session
+   - TTL: 5 minutes for price data, 15 minutes for portfolio data
+   - Size limit: 100MB max
+   - Eviction: LRU (Least Recently Used)
+
+2. **L2 Cache (Local Storage)**: Persistent cache across sessions  
+   - TTL: 1 hour for portfolio data, 24 hours for historical data
+   - Size limit: Configured by consumer application
+   - Encryption: Optional, configured by consumer
+
+3. **Stale-While-Revalidate Pattern**
+   - Serve cached data immediately while fetching updates
+   - Background refresh for frequently accessed data
+   - Graceful degradation with stale data on failures
+
+#### Cache Implementation Patterns
+
+##### Stale-While-Revalidate
+```typescript
+interface StaleWhileRevalidateOptions {
+  staleTime: number;      // Time before data is considered stale
+  cacheTime: number;      // Time before cache is cleared
+  backgroundRefresh: boolean;  // Enable background updates
+}
+```
+
+##### Delta Synchronization
+- Track last sync timestamp per source
+- Fetch only changed data where supported
+- Merge deltas with existing portfolio state
+- Reduce bandwidth and processing overhead
 
 ### Parallel Processing
 - **Concurrent Integration Calls**: Promise.allSettled for multiple sources
 - **Async Event Processing**: Non-blocking event handlers
 - **Background Refresh**: Optional background portfolio updates
+- **Worker Thread Support**: Heavy computations offloaded to Web Workers
 
 ### Memory Management
 - **Weak References**: For event subscribers cleanup
 - **Asset Pooling**: Reuse asset objects where possible
 - **Garbage Collection**: Explicit cleanup methods for long-running instances
+- **Memory Limits**: Configurable thresholds with automatic cleanup
 
-This architecture ensures the Portfolio Aggregation service library is maintainable, testable, and provides clear boundaries between business logic and technical concerns while supporting both browser and Node.js environments.
+## Error Handling
+
+### Error Handling Strategy
+
+#### Partial Failure Strategy
+- Continue aggregation even if individual sources fail
+- Mark failed sources in response metadata
+- Cache last known good data for failed sources
+- Return available data with error context
+
+#### Circuit Breaker Implementation
+- Track failure rates per integration
+- Open circuit after threshold failures
+- Temporarily skip failing integrations
+- Automatic recovery attempts with exponential backoff
+
+### Typed Error Hierarchy
+
+The service uses typed errors for different failure scenarios:
+
+```typescript
+export class AggregationError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly source?: IntegrationSource,
+    public readonly recoverable: boolean = true
+  ) {
+    super(message);
+  }
+}
+
+export class IntegrationError extends AggregationError {
+  constructor(
+    message: string,
+    source: IntegrationSource,
+    public readonly originalError?: Error
+  ) {
+    super(message, 'INTEGRATION_ERROR', source);
+  }
+}
+
+export class ReconciliationError extends AggregationError {
+  constructor(
+    message: string,
+    public readonly conflicts: AssetConflict[]
+  ) {
+    super(message, 'RECONCILIATION_ERROR');
+  }
+}
+
+export class CircuitBreakerError extends AggregationError {
+  constructor(
+    message: string,
+    source: IntegrationSource,
+    public readonly retryAfter: Date
+  ) {
+    super(message, 'CIRCUIT_BREAKER_OPEN', source, false);
+  }
+}
+```
+
+## Testing Strategy
+
+### Library Testing Approach
+
+```
+src/tests/
+├── unit/                              # Fast, isolated tests
+│   ├── domain/                        # Domain logic tests
+│   ├── application/                   # Service layer tests
+│   └── infrastructure/                # Adapter tests
+├── integration/                       # Cross-boundary tests
+│   ├── ServiceLibraryIntegration.test.ts
+│   └── EventBusIntegration.test.ts
+├── e2e/                              # Full service tests
+│   └── PortfolioAggregation.e2e.test.ts
+├── mocks/                            # Test doubles
+│   ├── MockIntegrationRepository.ts
+│   └── InMemoryPortfolioRepository.ts
+└── helpers/
+    └── TestDataBuilder.ts            # Test data creation
+```
+
+### Consumer Testing Support
+
+```typescript
+// Export test utilities for consuming applications
+export class TestServiceFactory {
+  static createMockService(overrides?: Partial<ServiceConfig>) {
+    return PortfolioServiceFactory.create({
+      integrations: new Map([['test', new MockIntegrationRepository()]]),
+      portfolioRepository: new InMemoryPortfolioRepository(),
+      assetValuator: new MockAssetValuator(),
+      ...overrides
+    });
+  }
+}
+```
+
+## Security Considerations
+
+1. **No Private Keys**: This library never handles private keys or signs transactions
+2. **Read-Only Operations**: All blockchain and API operations are read-only
+3. **Input Validation**: All addresses and inputs are validated at boundaries
+4. **No Direct Network Calls**: Library delegates external calls to integration packages
+5. **Dependency Security**: All dependencies are from trusted @cygnus-wealth organization
+6. **Anti-Corruption Layers**: External data is validated and transformed at boundaries
+
+## Versioning and Migration
+
+This library follows semantic versioning:
+
+- **Major**: Breaking changes to public API surface
+- **Minor**: New features, backward compatible
+- **Patch**: Bug fixes, no API changes
+
+### Breaking Change Policy
+
+- Changes to `PortfolioAggregationService` public methods
+- Changes to repository interface contracts
+- Changes to domain event structure
+- Changes to domain model public API
+
+### Migration Support
+
+Major version upgrades include:
+- Migration guides with before/after examples
+- Deprecated method warnings in minor versions
+- Compatibility layers when feasible
+
+## Performance Characteristics
+
+### Caching Strategy
+- **L1 Cache**: In-memory for active session data
+- **L2 Cache**: Delegated to consumer via IPortfolioRepository
+- **Cache Invalidation**: Event-driven updates and TTL management
+
+### Parallel Processing
+- **Concurrent Integration Calls**: Promise.allSettled for multiple sources
+- **Partial Failure Resilience**: Continue aggregation even if some sources fail
+- **Async Event Processing**: Non-blocking domain event emission
+
+### Scalability Considerations
+- **Memory Management**: Efficient asset deduplication algorithms
+- **Bundle Size**: Tree-shakeable exports and code splitting support
+- **Performance Targets**: < 3s for full portfolio aggregation
+
+## Integration with Enterprise Architecture
+
+### Context Mapping
+
+- **Customer/Supplier**: This library serves as supplier to consumer applications
+- **Anti-Corruption Layer**: Implements ACL pattern for all external integrations
+- **Shared Kernel**: Uses @cygnus-wealth/data-models for shared types
+- **Published Language**: Domain events serve as published language for integration
+
+### Domain Boundaries
+
+This bounded context maintains strict boundaries:
+- Does not handle wallet connections (delegated to wallet-integration-system)
+- Does not implement UI components (owned by consumer applications)
+- Does not perform direct price discovery (delegated to asset-valuator)
+- Does not manage user sessions (handled by consumer applications)
+
+### Future Evolution
+
+Planned enhancements while maintaining boundaries:
+- Support for additional blockchain integrations
+- Enhanced reconciliation algorithms
+- Real-time portfolio updates via WebSocket subscriptions
+- Advanced portfolio analytics capabilities
+- Historical portfolio snapshots
+
+This architecture ensures the Portfolio Aggregation service library is maintainable, testable, provides clear boundaries between business logic and technical concerns, and integrates seamlessly with the broader CygnusWealth enterprise architecture while supporting both browser and Node.js environments.
