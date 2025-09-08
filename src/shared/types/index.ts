@@ -4,7 +4,8 @@ export const Chain = {
   ARBITRUM: 'arbitrum',
   OPTIMISM: 'optimism',
   SOLANA: 'solana',
-  BINANCE: 'binance'
+  BINANCE: 'binance',
+  BITCOIN: 'bitcoin'
 } as const;
 
 export type Chain = typeof Chain[keyof typeof Chain];
@@ -15,6 +16,7 @@ export const AssetType = {
   STOCK: 'stock',
   OPTION: 'option',
   CRYPTO: 'crypto',
+  CRYPTOCURRENCY: 'crypto', // Alias for backward compatibility
   DEFI: 'defi'
 } as const;
 
