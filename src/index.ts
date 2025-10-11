@@ -27,18 +27,18 @@ export {
 } from './domain/services/PortfolioValuationService';
 
 // Domain Events
+export type { DomainEvent } from './domain/events/DomainEvent';
 export {
-  DomainEvent,
   BaseDomainEvent,
   DomainEventType
 } from './domain/events/DomainEvent';
 
-export {
+export type {
   IEventBus,
-  InMemoryEventBus,
-  type EventHandler,
-  type UnsubscribeFn
+  EventHandler,
+  UnsubscribeFn
 } from './domain/events/EventBus';
+export { InMemoryEventBus } from './domain/events/EventBus';
 
 export {
   PortfolioAggregationStartedEvent,
