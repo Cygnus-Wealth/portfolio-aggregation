@@ -29,7 +29,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/cygnus-wealth/portfolio-aggregation"
+    "url": "git+https://github.com/Cygnus-Wealth/portfolio-aggregation.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://github.com/cygnus-wealth/portfolio-aggregation#readme",
   "bugs": {
