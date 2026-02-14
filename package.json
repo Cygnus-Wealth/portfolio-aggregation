@@ -56,9 +56,9 @@
   "dependencies": {
     "@cygnus-wealth/data-models": "^1.0.0",
     "@cygnus-wealth/evm-integration": "^1.0.0",
-    "@cygnus-wealth/sol-integration": "^1.0.0",
-    "@cygnus-wealth/robinhood-integration": "^1.0.0",
-    "@cygnus-wealth/asset-valuator": "^1.0.0"
+    "@cygnus-wealth/sol-integration": "^0.1.0",
+    "@cygnus-wealth/robinhood-integration": "^0.1.0",
+    "@cygnus-wealth/asset-valuator": "^0.2.0"
   },
   "peerDependencies": {
     "events": "^3.3.0"
