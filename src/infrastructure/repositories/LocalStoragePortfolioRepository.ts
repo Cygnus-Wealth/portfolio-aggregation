@@ -2,6 +2,7 @@ import type { IPortfolioRepository } from '../../contracts/repositories/IPortfol
 import { PortfolioAggregate } from '../../domain/aggregates/Portfolio';
 import { AssetEntity } from '../../domain/entities/Asset';
 import type { AssetType, Chain, IntegrationSource, Balance, Price } from '../../shared/types';
+import { Environment } from '../../shared/types';
 
 interface SerializedAsset {
   id: string;
@@ -25,7 +26,11 @@ interface SerializedPortfolio {
 }
 
 export class LocalStoragePortfolioRepository implements IPortfolioRepository {
-  private readonly storageKey = 'cygnus_portfolios';
+  private readonly storageKey: string;
+
+  constructor(environment: Environment = Environment.MAINNET) {
+    this.storageKey = `cygnus_portfolios_${environment}`;
+  }
 
   async save(portfolio: PortfolioAggregate): Promise<void> {
     const portfolios = await this.getAllPortfolios();

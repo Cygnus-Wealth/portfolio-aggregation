@@ -30,6 +30,13 @@ export const IntegrationSource = {
 
 export type IntegrationSource = typeof IntegrationSource[keyof typeof IntegrationSource];
 
+export const Environment = {
+  MAINNET: 'mainnet',
+  TESTNET: 'testnet'
+} as const;
+
+export type Environment = typeof Environment[keyof typeof Environment];
+
 export interface Price {
   value: number;
   currency: string;

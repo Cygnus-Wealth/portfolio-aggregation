@@ -115,6 +115,12 @@ export { LocalStoragePortfolioRepository } from './infrastructure/repositories/L
 export { MockAssetValuatorRepository } from './infrastructure/repositories/MockAssetValuatorRepository';
 export { MockEVMIntegrationRepository } from './infrastructure/integrations/MockEVMIntegrationRepository';
 
+// Validation
+export {
+  EnvironmentValidator,
+  type EnvironmentValidatorConfig
+} from './infrastructure/validation/EnvironmentValidator';
+
 // ============================================================================
 // Contracts (Interfaces) Exports
 // ============================================================================
@@ -167,6 +173,7 @@ export {
 export {
   IntegrationSource,
   AssetType,
+  Environment,
   type Asset,
   type Balance,
   type Chain,
@@ -186,7 +193,8 @@ import type { IAddressRepository } from './contracts/repositories/IAddressReposi
 import type { ICircuitBreaker } from './contracts/patterns/ICircuitBreaker';
 import type { IRateLimiter } from './contracts/patterns/IRateLimiter';
 import type { IEventEmitter } from './contracts/events/IEventEmitter';
-import { IntegrationSource } from './shared/types';
+import { IntegrationSource, Environment } from './shared/types';
+import type { EnvironmentValidatorConfig } from './infrastructure/validation/EnvironmentValidator';
 import { PortfolioAggregationService } from './application/services/PortfolioAggregationService';
 import { AddressRegistryService } from './application/services/AddressRegistryService';
 import { SyncOrchestratorService } from './application/services/SyncOrchestratorService';
@@ -222,12 +230,16 @@ export class PortfolioServiceFactory {
     rateLimiterFactory: (source: IntegrationSource) => IRateLimiter;
     circuitBreakerFactory: (source: IntegrationSource) => ICircuitBreaker;
     eventEmitter?: IEventEmitter;
+    environment?: Environment;
+    environmentValidatorConfig?: EnvironmentValidatorConfig;
   }): SyncOrchestratorService {
     return new SyncOrchestratorService(
       config.integrations,
       config.rateLimiterFactory,
       config.circuitBreakerFactory,
-      config.eventEmitter
+      config.eventEmitter,
+      config.environment,
+      config.environmentValidatorConfig
     );
   }
 }

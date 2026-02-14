@@ -2,8 +2,9 @@ import { IIntegrationRepository } from '../../contracts/repositories/IIntegratio
 import { IRateLimiter, RateLimitConfig } from '../../contracts/patterns/IRateLimiter';
 import { ICircuitBreaker, CircuitBreakerConfig, CircuitState } from '../../contracts/patterns/ICircuitBreaker';
 import { IEventEmitter } from '../../contracts/events/IEventEmitter';
-import { IntegrationSource } from '../../shared/types';
+import { IntegrationSource, Environment } from '../../shared/types';
 import { BaseDomainEvent, DomainEventType } from '../../domain/events/DomainEvent';
+import { EnvironmentValidator, EnvironmentValidatorConfig } from '../../infrastructure/validation/EnvironmentValidator';
 
 /**
  * Sync result interface
@@ -78,13 +79,19 @@ export class SyncOrchestratorService {
   private metrics: SyncMetrics;
   private syncInterval?: NodeJS.Timeout;
   private syncInProgress = false;
+  private readonly environmentValidator: EnvironmentValidator;
+  readonly environment: Environment;
 
   constructor(
     private integrations: Map<IntegrationSource, IIntegrationRepository>,
     rateLimiterFactory: (source: IntegrationSource) => IRateLimiter,
     circuitBreakerFactory: (source: IntegrationSource) => ICircuitBreaker,
-    private eventEmitter?: IEventEmitter
+    private eventEmitter?: IEventEmitter,
+    environment: Environment = Environment.MAINNET,
+    environmentValidatorConfig?: EnvironmentValidatorConfig
   ) {
+    this.environment = environment;
+    this.environmentValidator = new EnvironmentValidator(environmentValidatorConfig);
     // Initialize rate limiters and circuit breakers for each integration
     for (const source of integrations.keys()) {
       this.rateLimiters.set(source, rateLimiterFactory(source));
@@ -116,6 +123,8 @@ export class SyncOrchestratorService {
    * Orchestrate sync across sources
    */
   async orchestrateSync(sources: IntegrationSource[]): Promise<SyncResult> {
+    this.environmentValidator.validate(this.environment);
+
     if (this.syncInProgress) {
       throw new Error('Sync already in progress');
     }
