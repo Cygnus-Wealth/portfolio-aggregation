@@ -41,7 +41,7 @@
   "author": "CygnusWealth",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -b && vite build --mode library",
+    "build": "tsc -b && vite build --config vite.config.library.ts",
     "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap",
     "lint": "eslint .",
     "test": "vitest",
@@ -49,7 +49,7 @@
     "test:coverage": "vitest --coverage",
     "test:once": "vitest run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules .turbo",
+    "clean": "rm -rf dist .turbo",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepublishOnly": "npm run clean && npm run build"
   },
