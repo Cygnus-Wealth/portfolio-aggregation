@@ -33,7 +33,6 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
   },
   "homepage": "https://github.com/cygnus-wealth/portfolio-aggregation#readme",
   "bugs": {
