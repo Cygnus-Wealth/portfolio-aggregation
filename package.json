@@ -32,7 +32,7 @@
     "url": "git+https://github.com/Cygnus-Wealth/portfolio-aggregation.git"
   },
   "publishConfig": {
-    "access": "public",
+    "access": "public"
   },
   "homepage": "https://github.com/cygnus-wealth/portfolio-aggregation#readme",
   "bugs": {
