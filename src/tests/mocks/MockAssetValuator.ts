@@ -82,6 +82,23 @@ export class MockAssetValuator implements IAssetValuatorRepository {
     return usdValue / toPrice.value;
   }
 
+  invalidateCache(symbols?: string[]): void {
+    if (symbols) {
+      for (const symbol of symbols) {
+        for (const key of this.prices.keys()) {
+          if (key.startsWith(`${symbol}:`)) {
+            this.prices.delete(key);
+          }
+        }
+        this.marketData.delete(symbol);
+      }
+    } else {
+      this.prices.clear();
+      this.marketData.clear();
+      this.setupDefaultPrices();
+    }
+  }
+
   /**
    * Set mock price for testing
    */

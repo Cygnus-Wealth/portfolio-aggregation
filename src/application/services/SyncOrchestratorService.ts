@@ -343,7 +343,12 @@ export class SyncOrchestratorService {
 
       // Emit source failed event
       if (this.eventEmitter) {
-        const event = new BaseDomainEvent(DomainEventType.SYNC_SOURCE_FAILED);
+        const event = {
+          eventId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          eventType: DomainEventType.SYNC_SOURCE_FAILED,
+          occurredAt: new Date(),
+          payload: { source, error: _error }
+        };
         this.eventEmitter.emit(DomainEventType.SYNC_SOURCE_FAILED, event);
       }
     }

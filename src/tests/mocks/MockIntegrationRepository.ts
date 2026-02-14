@@ -27,13 +27,36 @@ export class MockIntegrationRepository implements IIntegrationRepository {
     return this.connected;
   }
 
+  async fetchPortfolio(addresses: string[]): Promise<import('../../shared/types').Portfolio> {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+
+    const assets = await this.fetchAssets(addresses);
+    const totalValue = assets.reduce((sum, asset) => {
+      return sum + ((asset.price?.value || 0) * asset.balance.amount);
+    }, 0);
+
+    return {
+      id: `portfolio-${Date.now()}`,
+      assets,
+      totalValue: {
+        value: totalValue,
+        currency: 'USD',
+        timestamp: new Date()
+      },
+      lastUpdated: new Date(),
+      sources: [this.source]
+    };
+  }
+
   async fetchAssets(addresses: string[]): Promise<Asset[]> {
     if (!this.connected) {
       throw new Error('Not connected');
     }
 
     // Return mock assets for testing
-    return this.mockAssets.filter(asset => 
+    return this.mockAssets.filter(asset =>
       addresses.some(addr => asset.metadata?.address === addr)
     );
   }
@@ -80,7 +103,8 @@ export class MockIntegrationRepository implements IIntegrationRepository {
         },
         price: {
           value: 2500,
-          currency: 'USD'
+          currency: 'USD',
+          timestamp: new Date()
         },
         metadata: {
           address: '0x123',
@@ -101,7 +125,8 @@ export class MockIntegrationRepository implements IIntegrationRepository {
         },
         price: {
           value: 1,
-          currency: 'USD'
+          currency: 'USD',
+          timestamp: new Date()
         },
         metadata: {
           address: '0x123',

@@ -36,6 +36,10 @@ export class InMemoryPortfolioRepository implements IPortfolioRepository {
     }
   }
 
+  async exists(id: string): Promise<boolean> {
+    return this.portfolios.has(id);
+  }
+
   getCacheKey(params: { sources?: string[]; addresses?: Map<string, string[]>; userId?: string }): string {
     const sources = params.sources?.sort().join(',') || '';
     const addresses = Array.from(params.addresses?.entries() || [])

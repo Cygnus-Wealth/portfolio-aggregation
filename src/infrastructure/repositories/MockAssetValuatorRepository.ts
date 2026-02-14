@@ -1,5 +1,5 @@
-import type { IAssetValuatorRepository } from '@contracts/repositories/IAssetValuatorRepository';
-import type { Price } from '@shared/types';
+import type { IAssetValuatorRepository } from '../../contracts/repositories/IAssetValuatorRepository';
+import type { Price } from '../../shared/types';
 
 /**
  * Domain errors for asset valuation operations

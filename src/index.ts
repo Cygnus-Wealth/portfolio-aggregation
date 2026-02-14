@@ -171,12 +171,25 @@ export {
   type Balance,
   type Chain,
   type Transaction,
-  type TransactionType
+  type Price as SharedPrice
 } from './shared/types';
 
 // ============================================================================
 // Factory and Helper Exports
 // ============================================================================
+
+// Import concrete types needed for factory implementation
+import type { IIntegrationRepository } from './contracts/repositories/IIntegrationRepository';
+import type { IPortfolioRepository } from './contracts/repositories/IPortfolioRepository';
+import type { IAssetValuatorRepository } from './contracts/repositories/IAssetValuatorRepository';
+import type { IAddressRepository } from './contracts/repositories/IAddressRepository';
+import type { ICircuitBreaker } from './contracts/patterns/ICircuitBreaker';
+import type { IRateLimiter } from './contracts/patterns/IRateLimiter';
+import type { IEventEmitter } from './contracts/events/IEventEmitter';
+import { IntegrationSource } from './shared/types';
+import { PortfolioAggregationService } from './application/services/PortfolioAggregationService';
+import { AddressRegistryService } from './application/services/AddressRegistryService';
+import { SyncOrchestratorService } from './application/services/SyncOrchestratorService';
 
 /**
  * Factory for creating portfolio aggregation service with default configuration
@@ -186,13 +199,11 @@ export class PortfolioServiceFactory {
     integrations: Map<IntegrationSource, IIntegrationRepository>;
     portfolioRepository: IPortfolioRepository;
     assetValuator: IAssetValuatorRepository;
-    eventEmitter?: IEventEmitter;
   }): PortfolioAggregationService {
     return new PortfolioAggregationService(
       config.integrations,
       config.portfolioRepository,
-      config.assetValuator,
-      config.eventEmitter
+      config.assetValuator
     );
   }
 

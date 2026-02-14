@@ -1,6 +1,6 @@
-import type { IIntegrationRepository } from '@contracts/repositories/IIntegrationRepository';
-import type { Asset, Portfolio, Transaction } from '@shared/types';
-import { IntegrationSource, AssetType, Chain } from '@shared/types';
+import type { IIntegrationRepository } from '../../contracts/repositories/IIntegrationRepository';
+import type { Asset, Portfolio, Transaction } from '../../shared/types';
+import { IntegrationSource, AssetType, Chain } from '../../shared/types';
 
 export class MockEVMIntegrationRepository implements IIntegrationRepository {
   readonly source = IntegrationSource.EVM;

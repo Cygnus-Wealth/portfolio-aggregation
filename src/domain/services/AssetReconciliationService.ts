@@ -89,8 +89,8 @@ export class AssetReconciliationService {
       metadata: {
         ...preferredAsset.metadata,
         mergedFrom: [
-          ...(preferredAsset.metadata?.mergedFrom || []),
-          ...(otherAsset.metadata?.mergedFrom || []),
+          ...((preferredAsset.metadata?.mergedFrom as unknown[]) || []),
+          ...((otherAsset.metadata?.mergedFrom as unknown[]) || []),
           otherAsset.metadata?.source
         ].filter(Boolean)
       }
@@ -101,17 +101,19 @@ export class AssetReconciliationService {
    * Select preferred asset based on source priority
    */
   private selectPreferredSource(asset1: AssetEntity, asset2: AssetEntity): AssetEntity {
-    const sourcePriority = {
+    const sourcePriority: Record<string, number> = {
       'on-chain': 1,
       'blockchain': 1,
       'dex': 2,
       'cex': 3,
       'manual': 4
     };
-    
-    const priority1 = sourcePriority[asset1.metadata?.sourceType || 'manual'] || 999;
-    const priority2 = sourcePriority[asset2.metadata?.sourceType || 'manual'] || 999;
-    
+
+    const sourceType1 = (asset1.metadata?.sourceType as string) || 'manual';
+    const sourceType2 = (asset2.metadata?.sourceType as string) || 'manual';
+    const priority1 = sourcePriority[sourceType1] || 999;
+    const priority2 = sourcePriority[sourceType2] || 999;
+
     return priority1 <= priority2 ? asset1 : asset2;
   }
   
@@ -122,10 +124,12 @@ export class AssetReconciliationService {
     if (!asset1.price && !asset2.price) return undefined;
     if (!asset1.price) return asset2.price;
     if (!asset2.price) return asset1.price;
-    
-    const time1 = asset1.metadata?.fetchedAt ? new Date(asset1.metadata.fetchedAt).getTime() : 0;
-    const time2 = asset2.metadata?.fetchedAt ? new Date(asset2.metadata.fetchedAt).getTime() : 0;
-    
+
+    const fetchedAt1 = asset1.metadata?.fetchedAt as string | number | Date | undefined;
+    const fetchedAt2 = asset2.metadata?.fetchedAt as string | number | Date | undefined;
+    const time1 = fetchedAt1 ? new Date(fetchedAt1).getTime() : 0;
+    const time2 = fetchedAt2 ? new Date(fetchedAt2).getTime() : 0;
+
     return time1 >= time2 ? asset1.price : asset2.price;
   }
   

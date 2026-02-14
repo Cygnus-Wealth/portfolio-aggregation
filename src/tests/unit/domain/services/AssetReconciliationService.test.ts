@@ -88,17 +88,17 @@ describe('AssetReconciliationService', () => {
     });
 
     it('should use most recent price', () => {
-      const asset1 = createAsset({ 
-        price: { value: 2000, currency: 'USD' },
+      const asset1 = createAsset({
+        price: { value: 2000, currency: 'USD', timestamp: new Date('2024-01-01T00:00:00Z') },
         metadata: { fetchedAt: '2024-01-01T00:00:00Z' }
       });
-      const asset2 = createAsset({ 
-        price: { value: 2100, currency: 'USD' },
+      const asset2 = createAsset({
+        price: { value: 2100, currency: 'USD', timestamp: new Date('2024-01-02T00:00:00Z') },
         metadata: { fetchedAt: '2024-01-02T00:00:00Z' }
       });
-      
+
       const merged = service.mergeAssets(asset1, asset2);
-      
+
       expect(merged.price?.value).toBe(2100);
     });
 

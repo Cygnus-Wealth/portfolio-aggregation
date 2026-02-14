@@ -82,7 +82,11 @@ export class LocalStoragePortfolioRepository implements IPortfolioRepository {
   }
 
   private serialize(portfolio: PortfolioAggregate): SerializedPortfolio {
-    return portfolio.toJSON();
+    const json = portfolio.toJSON();
+    return {
+      ...json,
+      lastUpdated: json.lastUpdated.toISOString()
+    };
   }
 
   private deserialize(data: SerializedPortfolio): PortfolioAggregate {

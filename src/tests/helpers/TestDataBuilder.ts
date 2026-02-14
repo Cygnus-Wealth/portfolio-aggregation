@@ -25,7 +25,8 @@ export class TestDataBuilder {
       },
       price: {
         value: 2500,
-        currency: 'USD'
+        currency: 'USD',
+        timestamp: new Date()
       },
       ...overrides
     });
@@ -54,7 +55,8 @@ export class TestDataBuilder {
         },
         price: {
           value: 1,
-          currency: 'USD'
+          currency: 'USD',
+          timestamp: new Date()
         }
       }));
     }
@@ -79,7 +81,7 @@ export class TestDataBuilder {
    */
   static createAddress(
     value: string = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb4',
-    chain: string = 'ethereum'
+    chain: 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana' | 'binance' | 'bitcoin' = 'ethereum'
   ): Address {
     return new Address(value, chain);
   }
@@ -118,7 +120,8 @@ export class TestDataBuilder {
         },
         price: {
           value: symbol === 'BTC' ? 45000 : symbol === 'ETH' ? 2500 : 1,
-          currency: 'USD'
+          currency: 'USD',
+          timestamp: new Date()
         },
         metadata: {
           source: IntegrationSource.EVM,
