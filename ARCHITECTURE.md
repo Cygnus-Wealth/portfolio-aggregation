@@ -1093,17 +1093,52 @@ src/tests/
 │   ├── domain/                        # Domain logic tests
 │   ├── application/                   # Service layer tests
 │   └── infrastructure/                # Adapter tests
-├── integration/                       # Cross-boundary tests
-│   ├── ServiceLibraryIntegration.test.ts
-│   └── EventBusIntegration.test.ts
-├── e2e/                              # Full service tests
-│   └── PortfolioAggregation.e2e.test.ts
-├── mocks/                            # Test doubles
+├── e2e/                              # End-to-end orchestration tests
+│   ├── mocks/                        # E2E-specific mock implementations
+│   │   ├── E2EMockIntegrationRepository.ts
+│   │   ├── E2EMockAssetValuator.ts
+│   │   ├── E2EMockEventEmitter.ts
+│   │   ├── E2EMockRateLimiter.ts
+│   │   └── index.ts
+│   ├── portfolio-sync.e2e.test.ts    # P0: Full portfolio sync
+│   ├── asset-reconciliation.e2e.test.ts  # P0: Asset dedup
+│   ├── failure-isolation.e2e.test.ts # P1: Failure isolation
+│   ├── price-enrichment.e2e.test.ts  # P1: Price enrichment
+│   ├── portfolio-refresh.e2e.test.ts # P2: Refresh lifecycle
+│   └── circuit-breaker.e2e.test.ts   # P2: Circuit breaker
+├── mocks/                            # Shared test doubles
 │   ├── MockIntegrationRepository.ts
+│   ├── MockAssetValuator.ts
 │   └── InMemoryPortfolioRepository.ts
 └── helpers/
     └── TestDataBuilder.ts            # Test data creation
 ```
+
+### E2E Testing Strategy
+
+E2E tests validate cross-boundary orchestration with fully mocked integrations.
+No network calls are made; all integration boundaries are mocked.
+
+**Configuration**: `vitest.e2e.config.ts` (jsdom env, 20s timeout)
+**Run**: `npm run test:e2e`
+
+**Test Scenarios by Priority**:
+
+- **P0 (Critical Path)**:
+  - Full portfolio sync across EVM, Solana, Robinhood integrations
+  - Asset reconciliation and deduplication across sources
+- **P1 (Resilience)**:
+  - Single integration failure isolation (partial results returned)
+  - All integrations fail gracefully (empty portfolio, no crash)
+  - Price enrichment via AssetValuator (batch pricing, valuator failure tolerance)
+- **P2 (Lifecycle)**:
+  - Portfolio refresh lifecycle (create, cache, refresh, new asset detection)
+  - Circuit breaker activation (threshold tripping, half-open recovery, metrics)
+
+**Mock Architecture**: E2E mocks mirror production interfaces but add:
+- Configurable failure modes (connect failure, fetch failure, delays)
+- Call count tracking for assertion
+- Dynamic asset/price injection for scenario variation
 
 ### Consumer Testing Support
 

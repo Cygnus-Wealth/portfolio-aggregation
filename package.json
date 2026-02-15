@@ -48,6 +48,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:once": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
