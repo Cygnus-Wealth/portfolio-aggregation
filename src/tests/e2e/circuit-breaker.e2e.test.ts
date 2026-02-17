@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { SyncOrchestratorService } from '../../application/services/SyncOrchestratorService';
 import { CircuitBreaker } from '../../infrastructure/patterns/CircuitBreaker';
 import { CircuitState } from '../../contracts/patterns/ICircuitBreaker';
-import { IntegrationSource } from '../../shared/types';
+import { IntegrationSource, Environment } from '../../shared/types';
 import {
   E2EMockIntegrationRepository,
   E2EMockEventEmitter,
@@ -45,7 +45,8 @@ describe('E2E: Circuit Breaker Activation', () => {
         recoveryTimeout: 100,
         halfOpenRetries: 1,
       }),
-      eventEmitter
+      eventEmitter,
+      Environment.TESTNET
     );
   });
 
