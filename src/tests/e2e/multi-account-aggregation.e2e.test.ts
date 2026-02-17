@@ -5,7 +5,7 @@ import {
   WalletAccount,
 } from '../../application/services/MultiAccountAggregationService';
 import { InMemoryPortfolioRepository } from '../mocks/InMemoryPortfolioRepository';
-import { IntegrationSource, AssetType } from '../../shared/types';
+import { IntegrationSource } from '../../shared/types';
 import {
   E2EMockIntegrationRepository,
   E2EMockAssetValuator,
@@ -14,7 +14,6 @@ import {
   createSolanaAssets,
 } from './mocks';
 import type { IIntegrationRepository } from '../../contracts/repositories/IIntegrationRepository';
-import type { Asset } from '../../shared/types';
 
 describe('E2E: Multi-Account Aggregation Across Multiple Mnemonics', () => {
   let evmIntegration: E2EMockIntegrationRepository;

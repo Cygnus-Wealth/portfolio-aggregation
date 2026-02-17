@@ -272,8 +272,6 @@ describe('MultiAccountAggregationService', () => {
         makeSolAsset(WALLET_B_SOL_ADDR, 100),
       ]);
 
-      const walletC_sol = '9nYBm5pB8rAHVyhJXKM7Yz7GRe9iqCjHQaXtjJNVh4Mv';
-
       const accounts: WalletAccount[] = [
         {
           id: 'wallet-a',
