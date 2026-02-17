@@ -96,3 +96,101 @@ export interface WalletConnection {
   label?: string;
   type?: string;
 }
+
+// ============================================================================
+// DeFi Types
+// ============================================================================
+
+export const DeFiPositionType = {
+  VAULT: 'vault',
+  LENDING_SUPPLY: 'lending_supply',
+  LENDING_BORROW: 'lending_borrow',
+  LIQUIDITY_POOL: 'liquidity_pool',
+  STAKING: 'staking',
+  FARMING: 'farming',
+  PERP_POSITION: 'perp_position'
+} as const;
+
+export type DeFiPositionType = typeof DeFiPositionType[keyof typeof DeFiPositionType];
+
+export const DeFiProtocol = {
+  BEEFY: 'beefy',
+  AAVE: 'aave',
+  UNISWAP: 'uniswap',
+  COMPOUND: 'compound',
+  LIDO: 'lido',
+  MARINADE: 'marinade',
+  RAYDIUM: 'raydium',
+  JUPITER: 'jupiter',
+  ORCA: 'orca',
+  CETUS: 'cetus',
+  TURBOS: 'turbos',
+  SCALLOP: 'scallop'
+} as const;
+
+export type DeFiProtocol = typeof DeFiProtocol[keyof typeof DeFiProtocol];
+
+export const DeFiDiscoveryPath = {
+  PASSIVE: 'passive',
+  ACTIVE: 'active'
+} as const;
+
+export type DeFiDiscoveryPath = typeof DeFiDiscoveryPath[keyof typeof DeFiDiscoveryPath];
+
+export interface UnderlyingAsset {
+  symbol: string;
+  amount: number;
+  contractAddress?: string;
+  chain?: Chain;
+}
+
+export interface DeFiReward {
+  symbol: string;
+  amount: number;
+  value?: Price;
+}
+
+export interface DeFiPosition {
+  id: string;
+  type: DeFiPositionType;
+  protocol: DeFiProtocol;
+  chain: Chain;
+  underlyingAssets: UnderlyingAsset[];
+  value?: Price;
+  apy?: number;
+  rewards?: DeFiReward[];
+  deduplicationKey: string;
+  discoveryPath?: DeFiDiscoveryPath;
+  receiptTokenAddress?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface VaultPosition extends DeFiPosition {
+  type: typeof DeFiPositionType.VAULT;
+  vaultAddress: string;
+  shareBalance: number;
+  pricePerShare: number;
+}
+
+export interface LendingPosition extends DeFiPosition {
+  type: typeof DeFiPositionType.LENDING_SUPPLY | typeof DeFiPositionType.LENDING_BORROW;
+  supplyRate?: number;
+  borrowRate?: number;
+  collateralFactor?: number;
+  healthFactor?: number;
+}
+
+export interface LiquidityPosition extends DeFiPosition {
+  type: typeof DeFiPositionType.LIQUIDITY_POOL;
+  tokenPair: [string, string];
+  priceRange?: { lower: number; upper: number };
+  feeTier?: number;
+  impermanentLoss?: number;
+}
+
+export interface StakingPosition extends DeFiPosition {
+  type: typeof DeFiPositionType.STAKING;
+  lockPeriod?: number;
+  validator?: string;
+  rewardsAccrued?: DeFiReward[];
+}

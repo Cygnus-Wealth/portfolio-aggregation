@@ -4,12 +4,19 @@ import type { IIntegrationRepository } from '../../contracts/repositories/IInteg
 import type { IPortfolioRepository } from '../../contracts/repositories/IPortfolioRepository';
 import type { IAssetValuatorRepository } from '../../contracts/repositories/IAssetValuatorRepository';
 import { IntegrationSource } from '../../shared/types';
+import type { DeFiPosition } from '../../shared/types';
 
 export interface AggregationOptions {
   sources?: IntegrationSource[];
   addresses: Map<string, string[]>; // chain -> addresses
   userId?: string;
   forceRefresh?: boolean;
+}
+
+export interface DeFiAggregationResult {
+  positions: DeFiPosition[];
+  failedSources: { source: IntegrationSource; error: string }[];
+  receiptTokenAddresses: Set<string>;
 }
 
 export class PortfolioAggregationService {
@@ -29,7 +36,7 @@ export class PortfolioAggregationService {
 
   async aggregatePortfolio(options: AggregationOptions): Promise<PortfolioAggregate> {
     const portfolioId = this.generatePortfolioId(options.userId);
-    
+
     // Check cache if not forcing refresh
     if (!options.forceRefresh) {
       const cached = await this.portfolioRepository.findById(portfolioId);
@@ -47,36 +54,53 @@ export class PortfolioAggregationService {
     // Determine which sources to use
     const sourcesToFetch = options.sources || Array.from(this.integrations.keys());
 
-    // Fetch from all sources in parallel
-    const fetchPromises = sourcesToFetch.map(source => 
+    // Scatter: Fetch assets and DeFi positions from all sources in parallel
+    const assetFetchPromises = sourcesToFetch.map(source =>
       this.fetchFromSource(source, options.addresses)
+    );
+    const defiFetchPromises = sourcesToFetch.map(source =>
+      this.fetchDeFiFromSource(source, options.addresses)
     );
 
     try {
-      const results = await Promise.allSettled(fetchPromises);
-      
-      // Process successful fetches
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
+      const [assetResults, defiResults] = await Promise.all([
+        Promise.allSettled(assetFetchPromises),
+        Promise.allSettled(defiFetchPromises)
+      ]);
+
+      // Gather: Process asset results
+      for (let i = 0; i < assetResults.length; i++) {
+        const result = assetResults[i];
         const source = sourcesToFetch[i];
-        
+
         if (result.status === 'fulfilled' && result.value) {
           const assets = result.value;
           portfolio.addSource(source);
-          
+
           for (const asset of assets) {
             portfolio.addAsset(asset);
           }
         } else if (result.status === 'rejected') {
-          console.error(`Failed to fetch from ${source}:`, result.reason);
+          console.error(`Failed to fetch assets from ${source}:`, result.reason);
         }
       }
+
+      // Gather: Process DeFi results with deduplication
+      const defiAggregation = this.processDeFiResults(defiResults, sourcesToFetch);
+
+      for (const position of defiAggregation.positions) {
+        portfolio.addDeFiPosition(position);
+      }
+
+      // Coordinate: filter receipt tokens to prevent double-counting
+      portfolio.filterReceiptTokens(defiAggregation.receiptTokenAddresses);
 
       // Reconcile duplicates
       portfolio.reconcile();
 
-      // Enrich with prices
+      // Enrich with prices (assets + DeFi underlying assets)
       await this.enrichWithPrices(portfolio);
+      await this.enrichDeFiWithPrices(portfolio);
 
       // Save to repository
       await this.portfolioRepository.save(portfolio);
@@ -150,6 +174,105 @@ export class PortfolioAggregationService {
     
     // Remove duplicates
     return [...new Set(result)];
+  }
+
+  private async fetchDeFiFromSource(
+    source: IntegrationSource,
+    addresses: Map<string, string[]>
+  ): Promise<DeFiPosition[]> {
+    const integration = this.integrations.get(source);
+    if (!integration || !integration.getDeFiPositions) {
+      return [];
+    }
+
+    if (!integration.isConnected()) {
+      await integration.connect();
+    }
+
+    const relevantAddresses = this.getRelevantAddresses(source, addresses);
+    if (relevantAddresses.length === 0) {
+      return [];
+    }
+
+    return integration.getDeFiPositions(relevantAddresses);
+  }
+
+  private processDeFiResults(
+    results: PromiseSettledResult<DeFiPosition[]>[],
+    sources: IntegrationSource[]
+  ): DeFiAggregationResult {
+    const seen = new Map<string, DeFiPosition>();
+    const failedSources: { source: IntegrationSource; error: string }[] = [];
+    const receiptTokenAddresses = new Set<string>();
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const source = sources[i];
+
+      if (result.status === 'fulfilled' && result.value) {
+        for (const position of result.value) {
+          // Deduplicate by deduplicationKey — first-seen wins
+          if (!seen.has(position.deduplicationKey)) {
+            seen.set(position.deduplicationKey, position);
+          }
+          // Collect receipt token addresses
+          if (position.receiptTokenAddress) {
+            receiptTokenAddresses.add(position.receiptTokenAddress.toLowerCase());
+          }
+        }
+      } else if (result.status === 'rejected') {
+        console.error(`Failed to fetch DeFi from ${source}:`, result.reason);
+        failedSources.push({
+          source,
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+        });
+      }
+    }
+
+    return {
+      positions: Array.from(seen.values()),
+      failedSources,
+      receiptTokenAddresses
+    };
+  }
+
+  private async enrichDeFiWithPrices(portfolio: PortfolioAggregate): Promise<void> {
+    const positions = portfolio.defiPositions;
+    const symbols = new Set<string>();
+
+    for (const position of positions) {
+      for (const underlying of position.underlyingAssets) {
+        symbols.add(underlying.symbol);
+      }
+    }
+
+    if (symbols.size === 0) return;
+
+    try {
+      const prices = await this.assetValuator.getBatchPrices([...symbols]);
+
+      for (const position of positions) {
+        if (position.value) continue; // Already priced
+
+        let totalValue = 0;
+        for (const underlying of position.underlyingAssets) {
+          const price = prices.get(underlying.symbol);
+          if (price) {
+            totalValue += underlying.amount * price.value;
+          }
+        }
+
+        if (totalValue > 0) {
+          position.value = {
+            value: totalValue,
+            currency: 'USD',
+            timestamp: new Date()
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Failed to enrich DeFi with prices:', error);
+    }
   }
 
   private async enrichWithPrices(portfolio: PortfolioAggregate): Promise<void> {

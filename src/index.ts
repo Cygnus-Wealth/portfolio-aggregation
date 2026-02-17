@@ -59,9 +59,10 @@ export {
 // ============================================================================
 
 // Application Services
-export { 
+export {
   PortfolioAggregationService,
-  type AggregationOptions 
+  type AggregationOptions,
+  type DeFiAggregationResult
 } from './application/services/PortfolioAggregationService';
 
 export { 
@@ -174,11 +175,21 @@ export {
   IntegrationSource,
   AssetType,
   Environment,
+  DeFiPositionType,
+  DeFiProtocol,
+  DeFiDiscoveryPath,
   type Asset,
   type Balance,
   type Chain,
   type Transaction,
-  type Price as SharedPrice
+  type Price as SharedPrice,
+  type DeFiPosition,
+  type VaultPosition,
+  type LendingPosition,
+  type LiquidityPosition,
+  type StakingPosition,
+  type UnderlyingAsset,
+  type DeFiReward
 } from './shared/types';
 
 // ============================================================================
