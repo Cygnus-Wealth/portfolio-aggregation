@@ -67,5 +67,11 @@ export enum DomainEventType {
   // Circuit Breaker Events
   CIRCUIT_BREAKER_OPENED = 'CircuitBreakerOpened',
   CIRCUIT_BREAKER_CLOSED = 'CircuitBreakerClosed',
-  CIRCUIT_BREAKER_HALF_OPEN = 'CircuitBreakerHalfOpen'
+  CIRCUIT_BREAKER_HALF_OPEN = 'CircuitBreakerHalfOpen',
+
+  // Subscription Events
+  SUBSCRIPTION_STARTED = 'SubscriptionStarted',
+  SUBSCRIPTION_STOPPED = 'SubscriptionStopped',
+  SUBSCRIPTION_ERROR = 'SubscriptionError',
+  PORTFOLIO_LIVE_UPDATE = 'PortfolioLiveUpdate'
 }

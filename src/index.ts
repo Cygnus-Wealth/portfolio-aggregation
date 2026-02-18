@@ -72,7 +72,7 @@ export {
   type WalletConnection
 } from './application/services/AddressRegistryService';
 
-export { 
+export {
   SyncOrchestratorService,
   SyncCycleStartedEvent,
   SyncCycleCompletedEvent,
@@ -80,6 +80,8 @@ export {
   type SyncMetrics,
   type SourceMetrics
 } from './application/services/SyncOrchestratorService';
+
+export { SubscriptionOrchestrator } from './application/services/SubscriptionOrchestrator';
 
 // Commands
 export { 
@@ -162,10 +164,20 @@ export {
 } from './contracts/patterns/IRateLimiter';
 
 // Event Interfaces
-export { 
+export {
   type IEventEmitter,
   type EventHandler as IEventHandler
 } from './contracts/events/IEventEmitter';
+
+// Subscription Interfaces
+export {
+  SubscriptionStatus,
+  type ISubscriptionService,
+  type ChainSubscriptionEvent,
+  type ChainEventCallback,
+  type PortfolioUpdateEvent,
+  type LiveSubscriptionHandle
+} from './contracts/subscriptions/ISubscriptionService';
 
 // ============================================================================
 // Shared Types Exports
@@ -204,11 +216,14 @@ import type { IAddressRepository } from './contracts/repositories/IAddressReposi
 import type { ICircuitBreaker } from './contracts/patterns/ICircuitBreaker';
 import type { IRateLimiter } from './contracts/patterns/IRateLimiter';
 import type { IEventEmitter } from './contracts/events/IEventEmitter';
+import type { ISubscriptionService } from './contracts/subscriptions/ISubscriptionService';
 import { IntegrationSource, Environment } from './shared/types';
+import type { Chain } from './shared/types';
 import type { EnvironmentValidatorConfig } from './infrastructure/validation/EnvironmentValidator';
 import { PortfolioAggregationService } from './application/services/PortfolioAggregationService';
 import { AddressRegistryService } from './application/services/AddressRegistryService';
 import { SyncOrchestratorService } from './application/services/SyncOrchestratorService';
+import { SubscriptionOrchestrator } from './application/services/SubscriptionOrchestrator';
 
 /**
  * Factory for creating portfolio aggregation service with default configuration
@@ -253,6 +268,12 @@ export class PortfolioServiceFactory {
       config.environmentValidatorConfig
     );
   }
+
+  static createSubscriptionOrchestrator(config: {
+    subscriptionServices: Map<Chain, ISubscriptionService>;
+  }): SubscriptionOrchestrator {
+    return new SubscriptionOrchestrator(config.subscriptionServices);
+  }
 }
 
 // ============================================================================
@@ -279,6 +300,7 @@ export default {
   PortfolioAggregationService,
   AddressRegistryService,
   SyncOrchestratorService,
+  SubscriptionOrchestrator,
   PortfolioServiceFactory,
   VERSION,
   LIBRARY_NAME
