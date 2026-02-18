@@ -22,7 +22,7 @@ function createMockSubscriptionService(chain: Chain): ISubscriptionService & {
     _callbacks: Set<ChainEventCallback>;
   } = {
     _callbacks: callbacks,
-    subscribe: vi.fn((addresses: string[], callback: ChainEventCallback) => {
+    subscribe: vi.fn((_addresses: string[], callback: ChainEventCallback) => {
       callbacks.add(callback);
       return () => { callbacks.delete(callback); };
     }),

@@ -22,11 +22,6 @@ const DEBOUNCE_MS: Partial<Record<Chain, number>> = {
 
 const DEDUP_WINDOW_MS = 500;
 
-interface PendingEvent {
-  event: PortfolioUpdateEvent;
-  timer: ReturnType<typeof setTimeout>;
-}
-
 interface Subscription {
   id: number;
   addresses: Map<Chain, string[]>;
