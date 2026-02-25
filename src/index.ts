@@ -21,10 +21,16 @@ export { Address } from './domain/value-objects/Address';
 
 // Domain Services
 export { AssetReconciliationService } from './domain/services/AssetReconciliationService';
-export { 
+export {
   PortfolioValuationService,
-  type PortfolioMetrics 
+  type PortfolioMetrics
 } from './domain/services/PortfolioValuationService';
+export {
+  ChainFamilyRouter,
+  ChainFamily,
+  chainToFamily,
+  CHAIN_FAMILY_CHAINS,
+} from './domain/services/ChainFamilyRouter';
 
 // Domain Events
 export type { DomainEvent } from './domain/events/DomainEvent';
