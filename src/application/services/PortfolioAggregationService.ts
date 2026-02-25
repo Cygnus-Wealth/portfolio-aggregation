@@ -5,7 +5,7 @@ import type { IPortfolioRepository } from '../../contracts/repositories/IPortfol
 import type { IAssetValuatorRepository } from '../../contracts/repositories/IAssetValuatorRepository';
 import { IntegrationSource } from '../../shared/types';
 import type { DeFiPosition } from '../../shared/types';
-import { ChainFamilyRouter, ChainFamily } from '../../domain/services/ChainFamilyRouter';
+import { ChainFamilyRouter } from '../../domain/services/ChainFamilyRouter';
 
 export interface AggregationOptions {
   sources?: IntegrationSource[];
