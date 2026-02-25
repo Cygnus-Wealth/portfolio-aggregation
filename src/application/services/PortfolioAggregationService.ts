@@ -5,6 +5,7 @@ import type { IPortfolioRepository } from '../../contracts/repositories/IPortfol
 import type { IAssetValuatorRepository } from '../../contracts/repositories/IAssetValuatorRepository';
 import { IntegrationSource } from '../../shared/types';
 import type { DeFiPosition } from '../../shared/types';
+import { ChainFamilyRouter, ChainFamily } from '../../domain/services/ChainFamilyRouter';
 
 export interface AggregationOptions {
   sources?: IntegrationSource[];
@@ -152,27 +153,21 @@ export class PortfolioAggregationService {
     source: IntegrationSource,
     addresses: Map<string, string[]>
   ): string[] {
-    const result: string[] = [];
-    
-    switch (source) {
-      case IntegrationSource.EVM:
-        // Get all EVM-compatible chain addresses
-        for (const [chain, addrs] of addresses) {
-          if (['ethereum', 'polygon', 'arbitrum', 'optimism', 'binance'].includes(chain)) {
-            result.push(...addrs);
-          }
-        }
-        break;
-      case IntegrationSource.SOLANA:
-        result.push(...(addresses.get('solana') || []));
-        break;
-      case IntegrationSource.ROBINHOOD:
-        // Robinhood doesn't use addresses
-        result.push('default');
-        break;
+    // Robinhood doesn't use blockchain addresses
+    if (source === IntegrationSource.ROBINHOOD) {
+      return ['default'];
     }
-    
-    // Remove duplicates
+
+    // Route by chain family: find which family maps to this integration source
+    const groupedByFamily = ChainFamilyRouter.groupAddressesByFamily(addresses);
+
+    const result: string[] = [];
+    for (const [family, addrs] of groupedByFamily) {
+      if (ChainFamilyRouter.familyToIntegrationSource(family) === source) {
+        result.push(...addrs);
+      }
+    }
+
     return [...new Set(result)];
   }
 
