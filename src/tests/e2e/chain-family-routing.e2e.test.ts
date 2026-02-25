@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PortfolioAggregationService } from '../../application/services/PortfolioAggregationService';
-import { IntegrationSource, AssetType, Chain } from '../../shared/types';
+import { IntegrationSource, Chain } from '../../shared/types';
 import {
   E2EMockIntegrationRepository,
   createEVMAssets,
@@ -8,7 +8,6 @@ import {
 } from './mocks/E2EMockIntegrationRepository';
 import { E2EMockAssetValuator } from './mocks/E2EMockAssetValuator';
 import { InMemoryPortfolioRepository } from '../mocks/InMemoryPortfolioRepository';
-import { ChainFamily } from '../../domain/services/ChainFamilyRouter';
 
 describe('E2E: Chain-Family Routing', () => {
   let evmIntegration: E2EMockIntegrationRepository;

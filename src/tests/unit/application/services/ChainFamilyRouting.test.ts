@@ -4,7 +4,7 @@ import { InMemoryPortfolioRepository } from '../../../mocks/InMemoryPortfolioRep
 import { MockAssetValuator } from '../../../mocks/MockAssetValuator';
 import type { IIntegrationRepository } from '../../../../contracts/repositories/IIntegrationRepository';
 import { IntegrationSource, AssetType, Chain } from '../../../../shared/types';
-import type { Asset, DeFiPosition } from '../../../../shared/types';
+import type { Asset } from '../../../../shared/types';
 
 function createMockIntegration(
   source: IntegrationSource,
@@ -24,7 +24,7 @@ function createMockIntegration(
       if (assetsFactory) return assetsFactory(addresses);
       return [];
     }),
-    fetchTransactions: vi.fn(async () => []),
+    fetchTransactions: vi.fn(async () => [] as never[]),
   };
 }
 
@@ -36,7 +36,7 @@ describe('Chain-family routing in PortfolioAggregationService', () => {
 
   beforeEach(() => {
     evmIntegration = createMockIntegration(IntegrationSource.EVM, (addrs) =>
-      addrs.map((a, i) => ({
+      addrs.map((_addr, i) => ({
         id: `evm-asset-${i}`,
         symbol: 'ETH',
         type: AssetType.TOKEN,
@@ -46,7 +46,7 @@ describe('Chain-family routing in PortfolioAggregationService', () => {
     );
 
     solanaIntegration = createMockIntegration(IntegrationSource.SOLANA, (addrs) =>
-      addrs.map((a, i) => ({
+      addrs.map((_addr, i) => ({
         id: `sol-asset-${i}`,
         symbol: 'SOL',
         type: AssetType.TOKEN,
